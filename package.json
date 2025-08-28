@@ -1,0 +1,30 @@
+{
+  "name": "sokoban-web-game",
+  "version": "1.0.0",
+  "description": "A web-based Sokoban puzzle game",
+  "main": "index.html",
+  "scripts": {
+    "start": "python3 -m http.server 8000",
+    "serve": "python3 -m http.server 8000",
+    "build": "echo 'No build step required - this is a static site'",
+    "deploy:netlify": "netlify deploy --prod --dir .",
+    "deploy:vercel": "vercel --prod"
+  },
+  "keywords": [
+    "sokoban",
+    "puzzle",
+    "game",
+    "javascript",
+    "html5",
+    "canvas"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "your-repository-url"
+  },
+  "homepage": ".",
+  "devDependencies": {},
+  "dependencies": {}
+}
