@@ -4,10 +4,16 @@
 class SokobanGame {
     constructor() {
         this.currentLevel = 1;
-        this.maxLevel = 24;
+        this.maxLevel = 15;
         this.moves = 0;
         this.gameComplete = false;
         this.levelComplete = false;
+        
+        // Data collection properties
+        this.playerData = [];
+        this.lastTimestamp = Date.now();
+        this.sessionStartTime = Date.now();
+        this.participantName = "";
         
         // Character mappings from the Python implementation
         this.charToNum = {
@@ -238,7 +244,160 @@ class SokobanGame {
     init() {
         this.setupEventListeners();
         this.populateLevelSelector();
-        this.loadLevel(1);
+        this.showNameInput();
+    }
+    
+    showNameInput() {
+        // Create and show name input modal
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        `;
+        
+        const modalContent = document.createElement('div');
+        modalContent.style.cssText = `
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        `;
+        
+        modalContent.innerHTML = `
+            <h2 style="margin-bottom: 20px; color: #2c3e50;">Welcome to Sokoban!</h2>
+            <p style="margin-bottom: 20px; color: #7f8c8d;">Please enter your name to begin the game.</p>
+            <input type="text" id="participant-name-input" placeholder="Enter your name" 
+                   style="width: 100%; padding: 12px; border: 2px solid #bdc3c7; border-radius: 8px; font-size: 16px; margin-bottom: 20px;">
+            <button id="start-game-btn" class="btn btn-primary" style="width: 100%;">Start Game</button>
+        `;
+        
+        modal.appendChild(modalContent);
+        document.body.appendChild(modal);
+        
+        // Focus on input and handle enter key
+        const nameInput = document.getElementById('participant-name-input');
+        const startBtn = document.getElementById('start-game-btn');
+        
+        nameInput.focus();
+        
+        nameInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                startBtn.click();
+            }
+        });
+        
+        startBtn.addEventListener('click', () => {
+            const name = nameInput.value.trim();
+            if (name) {
+                this.participantName = name;
+                document.body.removeChild(modal);
+                this.loadLevel(1);
+            } else {
+                alert('Please enter your name to continue.');
+                nameInput.focus();
+            }
+        });
+    }
+    
+    // Data collection methods
+    recordPlayerAction(action, oldBoxPos, newBoxPos) {
+        const currentTimestamp = Date.now();
+        const reactionTime = currentTimestamp - this.lastTimestamp;
+        
+        const actionData = {
+            problem_idx: this.currentLevel,
+            arrow_key: action,
+            box_id: oldBoxPos ? this.getBoxId(oldBoxPos) : null,
+            old_box_pos: oldBoxPos,
+            new_box_pos: newBoxPos,
+            timestamp: currentTimestamp,
+            reaction_time: reactionTime,
+            player_pos: [...this.currentState.player],
+            session_time: currentTimestamp - this.sessionStartTime
+        };
+        
+        this.playerData.push(actionData);
+        this.lastTimestamp = currentTimestamp;
+        
+        // Log the action for debugging
+        console.log('Action recorded:', actionData);
+    }
+    
+    recordSpecialAction(actionType) {
+        const currentTimestamp = Date.now();
+        const reactionTime = currentTimestamp - this.lastTimestamp;
+        
+        const specialActionData = {
+            problem_idx: this.currentLevel,
+            arrow_key: actionType,
+            box_id: null,
+            old_box_pos: null,
+            new_box_pos: null,
+            timestamp: currentTimestamp,
+            reaction_time: reactionTime,
+            player_pos: [...this.currentState.player],
+            session_time: currentTimestamp - this.sessionStartTime
+        };
+        
+        this.playerData.push(specialActionData);
+        this.lastTimestamp = currentTimestamp;
+        
+        // Log the special action for debugging
+        console.log('Special action recorded:', specialActionData);
+    }
+    
+    getBoxId(position) {
+        // Find the box index based on position
+        return this.currentState.boxes.findIndex(box => 
+            box[0] === position[0] && box[1] === position[1]
+        );
+    }
+    
+    exportPlayerData() {
+        const dataToExport = {
+            participant_name: this.participantName,
+            session_info: {
+                start_time: this.sessionStartTime,
+                end_time: Date.now(),
+                total_duration: Date.now() - this.sessionStartTime,
+                total_moves: this.playerData.length,
+                levels_played: [...new Set(this.playerData.map(action => action.problem_idx))]
+            },
+            actions: this.playerData
+        };
+        
+        // Create and download JSON file
+        const dataStr = JSON.stringify(dataToExport, null, 2);
+        const dataBlob = new Blob([dataStr], {type: 'application/json'});
+        const url = URL.createObjectURL(dataBlob);
+        
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `sokoban_${this.participantName}_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        console.log('Player data exported:', dataToExport);
+    }
+    
+    autoSaveData() {
+        // Automatically save data when all levels are completed
+        if (this.gameComplete) {
+            console.log('All levels completed! Auto-saving data...');
+            this.exportPlayerData();
+        }
     }
     
     populateLevelSelector() {
@@ -258,7 +417,7 @@ class SokobanGame {
         document.addEventListener('keydown', (event) => {
             if (this.actions[event.key]) {
                 event.preventDefault();
-                this.handleMove(this.actions[event.key]);
+                this.handleMove(this.actions[event.key], event.key);
             } else if (event.key === 'r' || event.key === 'R') {
                 event.preventDefault();
                 this.resetLevel();
@@ -286,6 +445,13 @@ class SokobanGame {
         document.addEventListener('click', (event) => {
             if (event.target.id === 'next-level-btn') {
                 this.nextLevel();
+            }
+        });
+        
+        // Export data button (if exists)
+        document.addEventListener('click', (event) => {
+            if (event.target.id === 'export-data-btn') {
+                this.exportPlayerData();
             }
         });
     }
@@ -361,6 +527,9 @@ class SokobanGame {
         this.currentState = this.boardToState(board);
         this.initialState = JSON.parse(JSON.stringify(this.currentState));
         
+        // Record "start" trial at the beginning of each level
+        this.recordSpecialAction("start");
+        
         this.updateUI();
         this.renderBoard();
     }
@@ -369,6 +538,10 @@ class SokobanGame {
         this.currentState = JSON.parse(JSON.stringify(this.initialState));
         this.moves = 0;
         this.levelComplete = false;
+        
+        // Record "restart" trial after pressing reset
+        this.recordSpecialAction("restart");
+        
         this.updateUI();
         this.renderBoard();
     }
@@ -418,7 +591,7 @@ class SokobanGame {
         return true;
     }
     
-    handleMove(action) {
+    handleMove(action, keyPressed) {
         if (this.levelComplete || !this.isValidAction(this.currentState, action)) {
             return;
         }
@@ -430,20 +603,32 @@ class SokobanGame {
         
         // Check if pushing a box
         const boxIndex = this.currentState.boxes.findIndex(box => box[0] === newY && box[1] === newX);
+        let oldBoxPos = null;
+        let newBoxPos = null;
+        
         if (boxIndex !== -1) {
             // Move the box
-            this.currentState.boxes[boxIndex] = [newY + dy, newX + dx];
+            oldBoxPos = [newY, newX];
+            newBoxPos = [newY + dy, newX + dx];
+            this.currentState.boxes[boxIndex] = newBoxPos;
         }
         
         // Move the player
         this.currentState.player = [newY, newX];
         this.moves++;
         
+        // Record the action
+        this.recordPlayerAction(keyPressed, oldBoxPos, newBoxPos);
+        
         // Check if level is complete
         if (this.checkSolved()) {
             this.levelComplete = true;
             if (this.currentLevel === this.maxLevel) {
                 this.gameComplete = true;
+                // Auto-save data when all levels are completed
+                setTimeout(() => {
+                    this.autoSaveData();
+                }, 1000);
             }
             this.showCompletionMessage();
         }
