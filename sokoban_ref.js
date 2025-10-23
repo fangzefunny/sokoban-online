@@ -4,10 +4,15 @@
 class SokobanGame {
     constructor() {
         this.currentLevel = 1;
-        this.maxLevel = 15;
+        this.maxLevel = 42;
         this.moves = 0;
         this.gameComplete = false;
         this.levelComplete = false;
+        this.restartCount = 0; // Track restarts per level
+        this.maxRestarts = 10; // Maximum restarts allowed per level
+        this.isTransitioning = false; // Prevent multiple level transitions
+        this.successfulLevels = 0; // Track number of successfully completed levels
+        this.allowNextLevel = true; // Allow automatic level progression
         
         // Data collection properties
         this.playerData = [];
@@ -25,60 +30,70 @@ class SokobanGame {
             'X': 5   // box on target
         };
         
-        // Action mappings
+        // Action mappings - only arrow keys allowed
         this.actions = {
             'ArrowUp': [-1, 0],
             'ArrowDown': [1, 0],
             'ArrowLeft': [0, -1],
-            'ArrowRight': [0, 1],
-            'w': [-1, 0],
-            's': [1, 0],
-            'a': [0, -1],
-            'd': [0, 1],
-            'W': [-1, 0],
-            'S': [1, 0],
-            'A': [0, -1],
-            'D': [0, 1]
+            'ArrowRight': [0, 1]
         };
-        
-        // All level data embedded directly
-        this.levels = {
+
+        this.practicelevels = {
             1: `######
 #.  .#
 #    #
 # BB #
 #&   #
 ######`,
-            2: `######
-#.  .#
-#    #
-#B  B#
-#&   #
-######`,
-            3: ` ######
-#.B&  #
-###   #
-#.##  #
+            2: `########
+#.   B #
+# B   .#
+# &   B#
+#      #
+#     .#
+########`,
+        };
+        
+        // All level data from levels/ folder
+        this.levels = {
+            1: `#########
+##  ...##
+## & ####
+###B    #
+#   #B# #
+# B #   #
+#   #####
+#########`,
+            2: `########
+##& ####
+## B  ##
+### # ##
+#.# #  #
+#.B  # #
+#.   B #
+########`,
+            3: `########
+#.B&  ##
+###   ##
+#.##  ##
 # #   ##
 #B XB  #
 #   .  #
 ########`,
-            4: `##########
-#    &   #
-#  B  .  #
-#        #
-##########`,
-            5: `###########
-#         #
-#         #
-#  . . .  #
-#    B    #
-#    B    #
-#    B    #
-#         #
-#    &    #
-#         #
-###########`,
+            4: `#########
+#   #   #
+#   B &.#
+#   #   #
+#   #   #
+#########`,
+            5: `#########
+# . . . #
+#   B   #
+#   B   #
+#   B   #
+#       #
+#   &   #
+#########`,
             6: `#######
 # .   #
 # # # #
@@ -90,49 +105,47 @@ class SokobanGame {
 #  . . #
 #    # #
 ## # # #
- #  B  #
- #  B& #
- #     #
- #######`,
-            8: `  ######
-  # ..&#
-  # BB #
-  ## ###
-   # #
-   # #
-#### #
-#    ##
-# #   #
-#   # #
-###   #
-  #####`,
-            9: `####
+##  B  #
+##  B& #
+##     #
+########`,
+            8: `########
+### ..&#
+### BB #
+#### ###
+#### ###
+#    ###
+# #   ##
+#   # ##
+###   ##
+########`,
+            9: `#######
 #  ####
 # . . #
 # BBX&#
 ##    #
- ######`,
-            10: `####
-# .#
+#######`,
+            10: `######
+# .###
 #  ###
 #X&  #
 #  B #
 #  ###
-####`,
-            11: `#####
+######`,
+            11: `######
 #&  ##
 #.BX #
 #  # #
 #    #
 ######`,
-            12: `######
+            12: `#######
 #&   ##
 # BB  #
 # #. .#
 #     #
 #######`,
-            13: `  ####
-###  #
+            13: `#######
+###  ##
 #& .B##
 #   B #
 # #.  #
@@ -143,82 +156,177 @@ class SokobanGame {
 # .XXB&#
 #      #
 #####  #
-   ####`,
-            15: `  #####
-###   #
-#.&B  #
-### B.#
-#.##B #
+########`,
+            15: `########
+###   ##
+#.&B  ##
+### B.##
+#.##B ##
 # # . ##
 #B XBB.#
 #   .  #
 ########`,
-            16: `    #####
-    #   #
-    #B  #
-  ###  B###
-  #  B  B #
-### # ### #     ######
-#   # ### #######  ..#
-# B  B             ..#
-##### #### #&####  ..#
-    #      ###  ######
-    ########`,
-            17: `############
-#..  #     ###
-#..  # B  B  #
-#..  #B####  #
-#..    & ##  #
-#..  # #  B ##
-###### ##B B #
-  # B  B B B #
-  #    #     #
-  ############`,
-            18: `####
-#  #########
-#    ##    #
-# BBB#     #
-##...# #BBB#
- #...# #...#
- #BBB  #...##
- #    ##BBB #
- ####### &  #
-       ######`,
-            19: ` #########
- #   X   #
- # ## ## #
- #  X X  #
-###  #  ###
-#  .B#B.  #
-# #  &  # #
-#  .B#B.  #
-###  #  ###
-  #######`,
-            20: `##########
-#&  #.   #
-#.# # ## #
-# B  B  .#
-#B###B## #
-#      #B#
-# B   ...#
+            16: `#########
+#     ###
+#  &BB..#
+#### ## #
+###     #
+###  ####
+###  ####
+#########`,
+            17: `##########
+###  #####
+#  B  &..#
+# B    # #
+### #### #
+###      #
 ##########`,
-            21: ` ## #####
-## ## . #
-# ## B. #
- ## B   #
-## B& ###
-# B  ##  
-#.. ## ##
-#   # ## 
-##### #`,
-            22: `#########
+            18: `############
+#    ###   #
+# BB     #&#
+# B #...   #
+#   ########
+############`,
+            19: `######
+#    #
+# #& #
+# BX #
+# .X #
+#    #
+######`,
+            20: `######
+# & ##
+#...##
+#BBB##
+#    #
+#    #
+######`,
+            21: `#######
+#   ###
+# & ###
+# BB###
+##. . #
+##    #
+#######`,
+            22: `########
+#  #####
+# BB B #
+#      #
+## ## ##
+#...#&##
+# ### ##
+#      #
+#  #   #
+########`,
+            23: `########
+#   .. #
+#  &BB #
+##### ##
+####  ##
+####  ##
+####  ##
+########`,
+            24: `#########
+###  ####
+#       #
+#&BXXX. #
+#       #
+#########`,
+            25: `#########
+######&##
+#    .X #
+#   #   #
+#####B# #
+#####   #
+#########`,
+            26: `###########
+###     ###
+# B B   ###
+# ### #####
+# & . .   #
+#   ###   #
+###########`,
+            27: `#########
+###### &#
+######  #
+###### .#
+#   B  .#
+#  BB# .#
+#    ####
+###  ####
+#########`,
+            28: `#########
+# & #   #
+# B B   #
+##B### ##
+#  ...  #
+#   #   #
+######  #
+#########`,
+            29: `#########
 #&      #
 #       #
 # BBB...#
 #    ####
 #    ####
 #########`,
-            23: `##########
+            30: `#########
+###  ####
+#     B #
+# #  #B #
+# . .#& #
+#########`,
+            31: `##########
+##&    ###
+##B### B #
+#    B   #
+# ..#B  ##
+##..#   ##
+##########`,
+            32: `######
+#&  ##
+##BB##
+#.   #
+#  . #
+#  ###
+######`,
+            33: `##########
+###.     #
+#    B # #
+#.   B   #
+#    B B##
+#   . .&##
+##########`,
+            34: `######
+#    #
+# #. #
+#&B  #
+### ##
+# B  #
+# #  #
+#  . #
+######`,
+            35: `#######
+#.##  #
+#B    #
+#.X&B #
+#. B ##
+#######`,
+            36: `########
+#### &##
+####   #
+#. #BB #
+#     ##
+#.  B###
+##.  ###
+########`,
+            37: `######
+#.X  #
+#.B  #
+#&B  #
+###  #
+######`,
+            38: `##########
 #&  #.   #
 #.# # ## #
 # B  B  .#
@@ -226,24 +334,49 @@ class SokobanGame {
 #      #B#
 # B   ...#
 ##########`,
-            24: `  ##### 
-###.&.# 
-# BB#B##
-#      #
-### .  #
-  # X  #
-  #####`
+            39: `########
+#  &  ##
+# ##B ##
+#  .X  #
+##B #  #
+##   X.#
+########`,
+            40: `#########
+#    ####
+# ## ####
+#  .B.###
+# #B&B###
+# #.B.  #
+# # ### #
+#       #
+#########`
         };
         
         this.currentState = null;
         this.initialState = null;
         
+        // Create shuffled order for main game levels (1-40)
+        this.shuffledMainLevels = this.createShuffledMainLevels();
+        
         this.init();
+    }
+    
+    createShuffledMainLevels() {
+        // Create array of numbers 1-40
+        const levels = Array.from({length: 40}, (_, i) => i + 1);
+        
+        // Fisher-Yates shuffle algorithm
+        for (let i = levels.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [levels[i], levels[j]] = [levels[j], levels[i]];
+        }
+        
+        console.log('Shuffled main game levels:', levels);
+        return levels;
     }
     
     init() {
         this.setupEventListeners();
-        this.populateLevelSelector();
         this.showNameInput();
     }
     
@@ -275,10 +408,11 @@ class SokobanGame {
         
         modalContent.innerHTML = `
             <h2 style="margin-bottom: 20px; color: #2c3e50;">Welcome to Sokoban!</h2>
-            <p style="margin-bottom: 20px; color: #7f8c8d;">Please enter your name to begin the game.</p>
+            <p style="margin-bottom: 20px; color: #7f8c8d;">You will need to complete some practice games before you can start the main games.</p>
+            <p style="margin-bottom: 20px; color: #7f8c8d;">Please enter your name to start the practice.</p>
             <input type="text" id="participant-name-input" placeholder="Enter your name" 
                    style="width: 100%; padding: 12px; border: 2px solid #bdc3c7; border-radius: 8px; font-size: 16px; margin-bottom: 20px;">
-            <button id="start-game-btn" class="btn btn-primary" style="width: 100%;">Start Game</button>
+            <button id="start-game-btn" class="btn btn-primary" style="width: 100%;">Start Practice</button>
         `;
         
         modal.appendChild(modalContent);
@@ -315,7 +449,8 @@ class SokobanGame {
         const reactionTime = currentTimestamp - this.lastTimestamp;
         
         const actionData = {
-            problem_idx: this.currentLevel,
+            problem_idx: this.getOriginalLevelNum(),
+            game_id: this.currentLevel,
             arrow_key: action,
             box_id: oldBoxPos ? this.getBoxId(oldBoxPos) : null,
             old_box_pos: oldBoxPos,
@@ -338,7 +473,8 @@ class SokobanGame {
         const reactionTime = currentTimestamp - this.lastTimestamp;
         
         const specialActionData = {
-            problem_idx: this.currentLevel,
+            problem_idx: this.getOriginalLevelNum(),
+            game_id: this.currentLevel,
             arrow_key: actionType,
             box_id: null,
             old_box_pos: null,
@@ -363,6 +499,18 @@ class SokobanGame {
         );
     }
     
+    getOriginalLevelNum() {
+        // Get the original level number for the current level
+        if (this.currentLevel <= 2) {
+            // Practice levels - return the same number
+            return this.currentLevel;
+        } else {
+            // Main game levels - get from shuffled array
+            const shuffledIndex = this.currentLevel - 3; // Convert to 0-based index
+            return this.shuffledMainLevels[shuffledIndex];
+        }
+    }
+    
     exportPlayerData() {
         const dataToExport = {
             participant_name: this.participantName,
@@ -371,7 +519,10 @@ class SokobanGame {
                 end_time: Date.now(),
                 total_duration: Date.now() - this.sessionStartTime,
                 total_moves: this.playerData.length,
-                levels_played: [...new Set(this.playerData.map(action => action.problem_idx))]
+                levels_played: [...new Set(this.playerData.map(action => action.problem_idx))],
+                successful_levels: this.successfulLevels,
+                total_levels: 40, // Only count main game levels (3-42), not practice levels
+                success_rate: (this.successfulLevels / 40 * 100).toFixed(1) + '%'
             },
             actions: this.playerData
         };
@@ -395,26 +546,22 @@ class SokobanGame {
     autoSaveData() {
         // Automatically save data when all levels are completed
         if (this.gameComplete) {
-            console.log('All levels completed! Auto-saving data...');
+            console.log('All 40 levels completed! Auto-saving data...');
             this.exportPlayerData();
         }
     }
     
-    populateLevelSelector() {
-        const selector = document.getElementById('level-selector');
-        selector.innerHTML = '';
-        
-        for (let i = 1; i <= this.maxLevel; i++) {
-            const option = document.createElement('option');
-            option.value = i;
-            option.textContent = `Level ${i}`;
-            selector.appendChild(option);
-        }
-    }
     
     setupEventListeners() {
-        // Keyboard controls
+        // Global event blocker during transitions
         document.addEventListener('keydown', (event) => {
+            // Block all events during transitions
+            if (this.isTransitioning) {
+                event.preventDefault();
+                event.stopPropagation();
+                return;
+            }
+            
             if (this.actions[event.key]) {
                 event.preventDefault();
                 this.handleMove(this.actions[event.key], event.key);
@@ -424,34 +571,40 @@ class SokobanGame {
             }
         });
         
-        // Button controls
-        document.getElementById('level-selector').addEventListener('change', (event) => {
-            this.selectLevel(parseInt(event.target.value));
-        });
-        
-        document.getElementById('prev-level').addEventListener('click', () => {
-            this.previousLevel();
-        });
-        
-        document.getElementById('next-level').addEventListener('click', () => {
-            this.nextLevel();
-        });
-        
-        document.getElementById('reset-level').addEventListener('click', () => {
-            this.resetLevel();
-        });
-        
-        // Next level button in completion message
+        // Global click blocker during transitions
         document.addEventListener('click', (event) => {
-            if (event.target.id === 'next-level-btn') {
-                this.nextLevel();
+            // Allow continue button even during transitions
+            if (event.target.id === 'continue-main-game-btn') {
+                this.continueToMainGame();
+                return;
+            }
+            
+            // Block all other events during transitions
+            if (this.isTransitioning) {
+                event.preventDefault();
+                event.stopPropagation();
+                return;
+            }
+            
+            if (event.target.id === 'export-data-btn') {
+                this.exportPlayerData();
             }
         });
         
-        // Export data button (if exists)
-        document.addEventListener('click', (event) => {
-            if (event.target.id === 'export-data-btn') {
-                this.exportPlayerData();
+        // Block other potential events during transitions
+        document.addEventListener('keyup', (event) => {
+            if (this.isTransitioning) {
+                event.preventDefault();
+                event.stopPropagation();
+                return;
+            }
+        });
+        
+        document.addEventListener('keypress', (event) => {
+            if (this.isTransitioning) {
+                event.preventDefault();
+                event.stopPropagation();
+                return;
             }
         });
     }
@@ -514,7 +667,20 @@ class SokobanGame {
     }
     
     loadLevel(levelNum) {
-        if (levelNum < 1 || levelNum > this.maxLevel || !this.levels[levelNum]) {
+        // Handle practice levels (1-2) and main game levels (3-40)
+        let levelData = null;
+        
+        if (levelNum >= 1 && levelNum <= 2) {
+            // Load from practice levels
+            levelData = this.practicelevels[levelNum];
+        } else if (levelNum >= 3 && levelNum <= this.maxLevel) {
+            // Load from main game levels using shuffled order
+            const shuffledIndex = levelNum - 3; // Convert to 0-based index for shuffled array
+            const originalLevelNum = this.shuffledMainLevels[shuffledIndex];
+            levelData = this.levels[originalLevelNum];
+        }
+        
+        if (!levelData) {
             return;
         }
         
@@ -522,8 +688,11 @@ class SokobanGame {
         this.moves = 0;
         this.levelComplete = false;
         this.gameComplete = false;
+        this.restartCount = 0; // Reset restart count for new level
+        this.isTransitioning = false; // Reset transition flag
+        this.allowNextLevel = true; // Allow next level progression
         
-        const board = this.layoutToBoard(this.levels[levelNum]);
+        const board = this.layoutToBoard(levelData);
         this.currentState = this.boardToState(board);
         this.initialState = JSON.parse(JSON.stringify(this.currentState));
         
@@ -535,6 +704,27 @@ class SokobanGame {
     }
     
     resetLevel() {
+        // Prevent reset during transitions
+        if (this.isTransitioning) {
+            return;
+        }
+        
+        // Check if restart limit exceeded
+        if (this.restartCount >= this.maxRestarts) {
+            // Only save data if this is the last level (42)
+            if (this.currentLevel === this.maxLevel) {
+                //this.autoSaveData();
+                // Also automatically click the export data button
+                const exportBtn = document.getElementById('export-data-btn');
+                if (exportBtn) {
+                    exportBtn.click();
+                }
+            }
+            this.showFailureMessage();
+            return;
+        }
+        
+        this.restartCount++;
         this.currentState = JSON.parse(JSON.stringify(this.initialState));
         this.moves = 0;
         this.levelComplete = false;
@@ -592,7 +782,7 @@ class SokobanGame {
     }
     
     handleMove(action, keyPressed) {
-        if (this.levelComplete || !this.isValidAction(this.currentState, action)) {
+        if (this.levelComplete || this.isTransitioning || !this.isValidAction(this.currentState, action)) {
             return;
         }
         
@@ -623,14 +813,27 @@ class SokobanGame {
         // Check if level is complete
         if (this.checkSolved()) {
             this.levelComplete = true;
+            // Only count main game levels (3-42) as successful levels, not practice levels (1-2)
+            if (this.currentLevel >= 3) {
+                this.successfulLevels++; // Increment successful levels count
+            }
+            console.log(`Level ${this.currentLevel} completed successfully! Total successful levels: ${this.successfulLevels}`);
             if (this.currentLevel === this.maxLevel) {
                 this.gameComplete = true;
-                // Auto-save data when all levels are completed
+                // Save data first before showing completion message
+                //this.autoSaveData();
+                // Also automatically click the export data button
+                const exportBtn = document.getElementById('export-data-btn');
+                if (exportBtn) {
+                    exportBtn.click();
+                }
+                // Show completion message after data is saved
                 setTimeout(() => {
-                    this.autoSaveData();
-                }, 1000);
+                    this.showCompletionMessage();
+                }, 500);
+            } else {
+                this.showCompletionMessage();
             }
-            this.showCompletionMessage();
         }
         
         this.updateUI();
@@ -657,16 +860,122 @@ class SokobanGame {
     showCompletionMessage() {
         const levelCompleteDiv = document.getElementById('level-complete');
         const gameCompleteDiv = document.getElementById('game-complete');
+        const practiceCompleteDiv = document.getElementById('practice-complete');
         
         if (this.gameComplete) {
+            // Update successful levels display
+            document.getElementById('success-levels').textContent = this.successfulLevels;
+            console.log(`Game completed! Displaying successful levels: ${this.successfulLevels}/40`);
+            
+            // Set transition flag for game completion
+            this.isTransitioning = true;
             gameCompleteDiv.style.display = 'block';
             setTimeout(() => {
                 gameCompleteDiv.style.display = 'none';
+                this.isTransitioning = false;
             }, 5000);
         } else if (this.levelComplete) {
-            levelCompleteDiv.style.display = 'block';
-            // Message stays visible until button is clicked
+            // Check if this is practice level 2 - show practice completion modal
+            if (this.currentLevel === 2) {
+                console.log('Practice level 2 completed - showing practice completion modal');
+                this.isTransitioning = true;
+                practiceCompleteDiv.style.display = 'flex';
+                // Don't auto-advance, wait for user to click continue button
+            } else {
+                // Set transition flag to block all events during success transition
+                this.isTransitioning = true;
+                levelCompleteDiv.style.display = 'block';
+                // Auto-advance to next level after 1 second
+                console.log(`Setting timeout to auto-advance from successful level ${this.currentLevel} in 1 second`);
+                setTimeout(() => {
+                    console.log(`Timeout triggered - attempting to auto-advance from successful level ${this.currentLevel}`);
+                    levelCompleteDiv.style.display = 'none';
+                    // Directly load the next level
+                    const nextLevelNum = this.currentLevel + 1;
+                    console.log(`Directly loading level ${nextLevelNum}`);
+                    this.loadLevel(nextLevelNum);
+                }, 1000);
+            }
         }
+    }
+    
+    showFailureMessage() {
+        const failureDiv = document.getElementById('level-failure');
+        const levelCompleteDiv = document.getElementById('level-complete');
+        const gameCompleteDiv = document.getElementById('game-complete');
+        const practiceCompleteDiv = document.getElementById('practice-complete');
+        
+        console.log(`showFailureMessage() called for level ${this.currentLevel}`);
+        
+        // Set transition flag to block all events
+        this.isTransitioning = true;
+        
+        // Hide any existing completion messages
+        levelCompleteDiv.style.display = 'none';
+        gameCompleteDiv.style.display = 'none';
+        
+        // Record failure action
+        this.recordSpecialAction("failure");
+        
+        // Check if this is practice level 2 - show practice completion modal
+        if (this.currentLevel === 2) {
+            console.log('Practice level 2 failed - showing practice completion modal');
+            practiceCompleteDiv.style.display = 'flex';
+            // Don't auto-advance, wait for user to click continue button
+        } else if (this.currentLevel >= this.maxLevel) {
+            // Update failure message for last level
+            const failureMessage = document.getElementById('failure-message');
+            failureMessage.textContent = 'Game completed. Saving data...';
+            
+            // If failing at the last level, mark game as complete and save data
+            this.gameComplete = true;
+            // Save data first before showing completion message
+            //this.autoSaveData();
+            // Show completion message after data is saved
+            setTimeout(() => {
+                failureDiv.style.display = 'none';
+                // Update successful levels display
+                document.getElementById('success-levels').textContent = this.successfulLevels;
+                console.log(`Game completed via failure at level 40! Displaying successful levels: ${this.successfulLevels}/40`);
+                gameCompleteDiv.style.display = 'block';
+            }, 500);
+        } else {
+            // Show failure message
+            failureDiv.style.display = 'block';
+            // Auto-advance to next level after 1 second
+            console.log(`Setting timeout to auto-advance from level ${this.currentLevel} in 1 second`);
+            setTimeout(() => {
+                console.log(`Timeout triggered - attempting to auto-advance from level ${this.currentLevel}`);
+                failureDiv.style.display = 'none';
+                // Directly load the next level
+                const nextLevelNum = this.currentLevel + 1;
+                console.log(`Directly loading level ${nextLevelNum}`);
+                this.loadLevel(nextLevelNum);
+            }, 1000);
+        }
+    }
+    
+    continueToMainGame() {
+        console.log('Continue to main game button clicked');
+        console.log('Current level before transition:', this.currentLevel);
+        const practiceCompleteDiv = document.getElementById('practice-complete');
+        
+        // Hide the practice completion modal
+        practiceCompleteDiv.style.display = 'none';
+        
+        // Hide the How to Play instructions
+        const howToPlayDiv = document.getElementById('how-to-play');
+        if (howToPlayDiv) {
+            howToPlayDiv.style.display = 'none';
+        }
+        
+        // Reset transition flag
+        this.isTransitioning = false;
+        
+        // Load level 3 (main game starts)
+        console.log('Loading level 3 to start main game');
+        this.loadLevel(3);
+        console.log('Level loaded, current level is now:', this.currentLevel);
     }
     
     renderBoard() {
@@ -696,6 +1005,7 @@ class SokobanGame {
                     // Player
                     cell.classList.add('player');
                     if (isTarget) {
+                        // Player on target - only show red star, no target symbol
                         cell.classList.add('target');
                     } else {
                         cell.classList.add('floor');
@@ -731,44 +1041,49 @@ class SokobanGame {
     }
     
     updateUI() {
-        document.getElementById('current-level').textContent = this.currentLevel;
-        document.getElementById('move-count').textContent = this.moves;
+        // Update level display based on current level
+        let levelDisplay = '';
+        if (this.currentLevel <= 2) {
+            // Practice levels
+            levelDisplay = `Practice ${this.currentLevel}`;
+        } else {
+            // Main game levels (3-42 map to 1-40, but display in sequential order)
+            const mainGameLevel = this.currentLevel - 2;
+            levelDisplay = `${mainGameLevel}/40`;
+        }
+        document.getElementById('current-level').textContent = levelDisplay;
+        
         document.getElementById('final-moves').textContent = this.moves;
-        
-        // Update level selector
-        document.getElementById('level-selector').value = this.currentLevel;
-        
-        // Update button states
-        document.getElementById('prev-level').disabled = this.currentLevel <= 1;
-        document.getElementById('next-level').disabled = this.currentLevel >= this.maxLevel;
+        const restartsLeft = this.maxRestarts - this.restartCount;
+        document.getElementById('restart-count').textContent = restartsLeft;
         
         // Only hide completion messages if level is not complete
         if (!this.levelComplete && !this.gameComplete) {
             document.getElementById('level-complete').style.display = 'none';
             document.getElementById('game-complete').style.display = 'none';
+            document.getElementById('level-failure').style.display = 'none';
         }
     }
     
     nextLevel() {
+        console.log(`nextLevel() called - isTransitioning: ${this.isTransitioning}, allowNextLevel: ${this.allowNextLevel}, currentLevel: ${this.currentLevel}, maxLevel: ${this.maxLevel}`);
+        
+        // Only allow if not in transition and next level is allowed
+        if (this.isTransitioning || !this.allowNextLevel) {
+            console.log('nextLevel() blocked - isTransitioning or allowNextLevel is false');
+            return;
+        }
+        
         if (this.currentLevel < this.maxLevel) {
+            console.log(`Proceeding to load level ${this.currentLevel + 1}`);
             // Hide completion message
             document.getElementById('level-complete').style.display = 'none';
             this.loadLevel(this.currentLevel + 1);
+        } else {
+            console.log('Already at max level, cannot advance');
         }
     }
     
-    previousLevel() {
-        if (this.currentLevel > 1) {
-            this.loadLevel(this.currentLevel - 1);
-        }
-    }
-    
-    selectLevel(levelNum) {
-        const level = parseInt(levelNum);
-        if (level >= 1 && level <= this.maxLevel) {
-            this.loadLevel(level);
-        }
-    }
 }
 
 // Initialize the game when the page loads

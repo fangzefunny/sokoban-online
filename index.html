@@ -56,14 +56,20 @@
         }
 
         .game-controls {
-            display: grid;
-            grid-template-columns: 1fr auto 1fr;
-            gap: 20px;
+            display: flex;
+            justify-content: center;
             align-items: center;
             margin-bottom: 25px;
             padding: 20px;
             background: rgba(236, 240, 241, 0.5);
             border-radius: 15px;
+            width: 100%;
+        }
+
+        .controls-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
         }
 
         .level-controls {
@@ -98,9 +104,15 @@
 
         .game-stats {
             display: flex;
-            flex-direction: column;
             align-items: center;
-            gap: 8px;
+            /*justify-content: center;*/
+            gap: 20px;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 15px 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            margin: 0 -20% 0 13%;
+            width: fit-content;
         }
 
         .stat-item {
@@ -111,14 +123,28 @@
             color: #2c3e50;
         }
 
+        .stat-label {
+            font-size: 0.95em;
+            color: #7f8c8d;
+            font-weight: 500;
+        }
+
+        .stat-divider {
+            color: #bdc3c7;
+            font-weight: 300;
+            font-size: 1.2em;
+        }
+
         .stat-value {
             background: linear-gradient(45deg, #667eea, #764ba2);
             color: white;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 0.9em;
-            min-width: 40px;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 700;
+            min-width: 45px;
             text-align: center;
+            box-shadow: 0 2px 6px rgba(102, 126, 234, 0.3);
         }
 
         .game-buttons {
@@ -164,6 +190,20 @@
             opacity: 0.5;
             cursor: not-allowed;
             transform: none;
+        }
+
+        #export-data-btn {
+            background: transparent !important;
+            color: transparent !important;
+            box-shadow: none !important;
+            border: none !important;
+        }
+
+        #export-data-btn:hover {
+            background: transparent !important;
+            color: transparent !important;
+            transform: none !important;
+            box-shadow: none !important;
         }
 
         .game-board-container {
@@ -282,10 +322,13 @@
             border: 1px solid #cccccc;
         }
 
+        .player.target::before {
+            display: none;
+        }
+
         .game-info {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 30px;
+            display: flex;
+            justify-content: center;
             margin-top: 30px;
         }
 
@@ -343,7 +386,7 @@
 
         .legend-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-columns: repeat(5, 1fr);
             gap: 15px;
         }
 
@@ -412,8 +455,18 @@
 
         @media (max-width: 768px) {
             .game-controls {
-                grid-template-columns: 1fr;
+                flex-direction: column;
                 gap: 15px;
+            }
+            
+            .game-stats {
+                flex-direction: column;
+                gap: 12px;
+                padding: 12px 20px;
+            }
+            
+            .stat-divider {
+                display: none;
             }
             
             .game-info {
@@ -437,33 +490,34 @@
     <div class="game-container">
         <div class="game-header">
             <h1 class="game-title">🎮 Sokoban Puzzle</h1>
-            <p class="game-subtitle">Push the boxes to their targets!</p>
+        </div>
+        
+        <div class="instructions" id="how-to-play">
+            <h3>🎯 How to Play</h3>
+            <ul>
+                <li>Use <strong>Arrow Keys</strong> to move the player <span style="color: red; font-size: 16px; font-weight: bold; margin: 0 4px;">★</span> or push boxes <span style="display: inline-block; width: 16px; height: 16px; background: #8fbc8f; border: 1px solid #cccccc; vertical-align: middle; margin: 0 4px;"></span> to the targets <span style="color: #e74c3c; font-size: 16px; font-weight: bold; margin: 0 4px;">✕</span>.</li>
+                <li>Press <strong>R</strong> to restart the game. You need to complete each game within <strong>10 restarts</strong>. Otherwise, you will automatically move to the next game.</li>
+                <li>Now, you will play <strong>2 games</strong> for <strong>practice</strong>. After that, you will have <strong>40 main games</strong> to complete!</li>
+            </ul>
         </div>
         
         <div class="game-controls">
-            <div class="level-controls">
-                <span class="level-label">Level:</span>
-                <select id="level-selector" class="level-selector">
-                    <!-- Levels will be populated by JavaScript -->
-                </select>
-            </div>
-            
-            <div class="game-stats">
-                <div class="stat-item">
-                    <span>Level:</span>
-                    <span class="stat-value" id="current-level">1</span>
+            <div class="controls-right">
+                <div class="game-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">Game:</span>
+                        <span class="stat-value" id="current-level">Practice 1</span>
+                    </div>
+                    <div class="stat-divider">|</div>
+                    <div class="stat-item">
+                        <span class="stat-label">Restarts Left:</span>
+                        <span class="stat-value" id="restart-count">10</span>
+                    </div>
                 </div>
-                <div class="stat-item">
-                    <span>Moves:</span>
-                    <span class="stat-value" id="move-count">0</span>
+                
+                <div class="game-buttons">
+                    <button class="btn btn-secondary" id="export-data-btn">Export Data</button>
                 </div>
-            </div>
-            
-            <div class="game-buttons">
-                <button class="btn btn-secondary" id="prev-level">◀ Prev</button>
-                <button class="btn btn-primary" id="reset-level">🔄 Reset</button>
-                <button class="btn btn-secondary" id="next-level">Next ▶</button>
-                <button class="btn btn-secondary" id="export-data-btn">📊 Export Data</button>
             </div>
         </div>
         
@@ -472,16 +526,6 @@
         </div>
         
         <div class="game-info">
-            <div class="instructions">
-                <h3>🎯 How to Play</h3>
-                <ul>
-                    <li>Use <strong>WASD</strong> or <strong>Arrow Keys</strong> to move</li>
-                    <li>Push all boxes onto the green targets</li>
-                    <li>Press <strong>R</strong> to reset the level</li>
-                    <li>Complete all levels to win!</li>
-                </ul>
-            </div>
-            
             <div class="legend">
                 <h3>📋 Game Elements</h3>
                 <div class="legend-grid">
@@ -514,16 +558,51 @@
         <div class="message">
             🎉 Congratulations! Level completed! 🎉<br>
             <small>Moves: <span id="final-moves">0</span></small><br><br>
-            <button id="next-level-btn" class="btn btn-primary">Next Level ▶</button>
+            <small>Moving to next level automatically...</small>
         </div>
     </div>
     
     <div id="game-complete" class="completion-messages">
         <div class="message">
             🏆 Congratulations! 🏆<br>
-            You've completed all levels!<br>
-            <small>Total Moves: <span id="total-moves">0</span></small><br><br>
-            <small>Your data will be automatically saved.</small>
+            You've completed all 40 games!<br>
+            <small>Successful Games: <span id="success-levels">40</span>/40</small><br><br>
+            <small>Your data has been automatically saved.</small><br>
+            <strong>You may now close this window.</strong>
+        </div>
+    </div>
+    
+    <div id="practice-complete" style="
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.8);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+    ">
+        <div style="
+            background: white;
+            padding: 40px;
+            border-radius: 15px;
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+        ">
+            <h2 style="margin-bottom: 20px; color: #2c3e50;">🎯 Practice completed! 🎯</h2>
+            <p style="margin-bottom: 20px; color: #7f8c8d;">If you are ready for the main games, please click the below button to continue.</p>
+            <button id="continue-main-game-btn" class="btn btn-primary" style="width: 100%;">Continue to Main Game</button>
+        </div>
+    </div>
+    
+    <div id="level-failure" class="completion-messages">
+        <div class="message" style="background: linear-gradient(45deg, #e74c3c, #c0392b);">
+            ❌ Level Failed! ❌<br>
+            No restart chances remaining (0/10)<br>
+            <small id="failure-message">Moving to next level automatically...</small>
         </div>
     </div>
 
