@@ -19,6 +19,7 @@ class SokobanGame {
         this.lastTimestamp = Date.now();
         this.sessionStartTime = Date.now();
         this.participantName = "";
+        this.levelOutcomes = []; // Track success/failure for each level
         
         // Character mappings from the Python implementation
         this.charToNum = {
@@ -465,6 +466,22 @@ class SokobanGame {
         console.log('Special action recorded:', specialActionData);
     }
     
+    recordLevelOutcome(success) {
+        const currentTimestamp = Date.now();
+        const levelOutcome = {
+            level: this.currentLevel,
+            original_level: this.getOriginalLevelNum(),
+            success: success,
+            moves: this.moves,
+            restarts: this.restartCount,
+            timestamp: currentTimestamp,
+            session_time: currentTimestamp - this.sessionStartTime
+        };
+        
+        this.levelOutcomes.push(levelOutcome);
+        console.log('Level outcome recorded:', levelOutcome);
+    }
+    
     getBoxId(position) {
         // Find the box index based on position
         return this.currentState.boxes.findIndex(box => 
@@ -497,6 +514,7 @@ class SokobanGame {
                 total_levels: 35, // Only count main game levels (4-38), not practice levels
                 success_rate: (this.successfulLevels / 35 * 100).toFixed(1) + '%'
             },
+            level_outcomes: this.levelOutcomes,
             actions: this.playerData
         };
         
@@ -684,7 +702,9 @@ class SokobanGame {
         
         // Check if restart limit exceeded
         if (this.restartCount >= this.maxRestarts) {
-            // Only save data if this is the last level (42)
+            // Record failed completion
+            this.recordLevelOutcome(false);
+            // Only save data if this is the last level (38)
             if (this.currentLevel === this.maxLevel) {
                 //this.autoSaveData();
                 // Also automatically click the export data button
@@ -786,6 +806,8 @@ class SokobanGame {
         // Check if level is complete
         if (this.checkSolved()) {
             this.levelComplete = true;
+            // Record successful completion
+            this.recordLevelOutcome(true);
             // Only count main game levels (4-38) as successful levels, not practice levels (1-3)
             if (this.currentLevel >= 4) {
                 this.successfulLevels++; // Increment successful levels count
