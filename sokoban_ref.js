@@ -4,7 +4,7 @@
 class SokobanGame {
     constructor() {
         this.currentLevel = 1;
-        this.maxLevel = 42;
+        this.maxLevel = 38;
         this.moves = 0;
         this.gameComplete = false;
         this.levelComplete = false;
@@ -45,7 +45,13 @@ class SokobanGame {
 # BB #
 #&   #
 ######`,
-            2: `########
+            2: `#########
+#   #   #
+#   B &.#
+#   #   #
+#   #   #
+#########`,
+            3: `########
 #.   B #
 # B   .#
 # &   B#
@@ -80,12 +86,12 @@ class SokobanGame {
 #B XB  #
 #   .  #
 ########`,
-            4: `#########
-#   #   #
-#   B &.#
-#   #   #
-#   #   #
-#########`,
+            4: `######
+#.X  #
+#.B  #
+#&B  #
+###  #
+######`,
             5: `#########
 # . . . #
 #   B   #
@@ -226,12 +232,14 @@ class SokobanGame {
 ####  ##
 ####  ##
 ########`,
-            24: `#########
-###  ####
-#       #
-#&BXXX. #
-#       #
-#########`,
+            24: `##########
+#&  #.   #
+#.# # ## #
+# B  B  .#
+#B###B## #
+#      #B#
+# B   ...#
+##########`,
             25: `#########
 ######&##
 #    .X #
@@ -271,10 +279,13 @@ class SokobanGame {
 #    ####
 #########`,
             30: `#########
-###  ####
-#     B #
-# #  #B #
-# . .#& #
+#    ####
+# ## ####
+#  .B.###
+# #B&B###
+# #.B.  #
+# # ### #
+#       #
 #########`,
             31: `##########
 ##&    ###
@@ -311,59 +322,21 @@ class SokobanGame {
 #B    #
 #.X&B #
 #. B ##
-#######`,
-            36: `########
-#### &##
-####   #
-#. #BB #
-#     ##
-#.  B###
-##.  ###
-########`,
-            37: `######
-#.X  #
-#.B  #
-#&B  #
-###  #
-######`,
-            38: `##########
-#&  #.   #
-#.# # ## #
-# B  B  .#
-#B###B## #
-#      #B#
-# B   ...#
-##########`,
-            39: `########
-#  &  ##
-# ##B ##
-#  .X  #
-##B #  #
-##   X.#
-########`,
-            40: `#########
-#    ####
-# ## ####
-#  .B.###
-# #B&B###
-# #.B.  #
-# # ### #
-#       #
-#########`
+#######`
         };
         
         this.currentState = null;
         this.initialState = null;
         
-        // Create shuffled order for main game levels (1-40)
+        // Create shuffled order for main game levels (1-35)
         this.shuffledMainLevels = this.createShuffledMainLevels();
         
         this.init();
     }
     
     createShuffledMainLevels() {
-        // Create array of numbers 1-40
-        const levels = Array.from({length: 40}, (_, i) => i + 1);
+        // Create array of numbers 1-35
+        const levels = Array.from({length: 35}, (_, i) => i + 1);
         
         // Fisher-Yates shuffle algorithm
         for (let i = levels.length - 1; i > 0; i--) {
@@ -501,12 +474,12 @@ class SokobanGame {
     
     getOriginalLevelNum() {
         // Get the original level number for the current level
-        if (this.currentLevel <= 2) {
+        if (this.currentLevel <= 3) {
             // Practice levels - return the same number
             return this.currentLevel;
         } else {
             // Main game levels - get from shuffled array
-            const shuffledIndex = this.currentLevel - 3; // Convert to 0-based index
+            const shuffledIndex = this.currentLevel - 4; // Convert to 0-based index
             return this.shuffledMainLevels[shuffledIndex];
         }
     }
@@ -521,8 +494,8 @@ class SokobanGame {
                 total_moves: this.playerData.length,
                 levels_played: [...new Set(this.playerData.map(action => action.problem_idx))],
                 successful_levels: this.successfulLevels,
-                total_levels: 40, // Only count main game levels (3-42), not practice levels
-                success_rate: (this.successfulLevels / 40 * 100).toFixed(1) + '%'
+                total_levels: 35, // Only count main game levels (4-38), not practice levels
+                success_rate: (this.successfulLevels / 35 * 100).toFixed(1) + '%'
             },
             actions: this.playerData
         };
@@ -546,7 +519,7 @@ class SokobanGame {
     autoSaveData() {
         // Automatically save data when all levels are completed
         if (this.gameComplete) {
-            console.log('All 40 levels completed! Auto-saving data...');
+            console.log('All 35 levels completed! Auto-saving data...');
             this.exportPlayerData();
         }
     }
@@ -667,15 +640,15 @@ class SokobanGame {
     }
     
     loadLevel(levelNum) {
-        // Handle practice levels (1-2) and main game levels (3-40)
+        // Handle practice levels (1-3) and main game levels (4-38)
         let levelData = null;
         
-        if (levelNum >= 1 && levelNum <= 2) {
+        if (levelNum >= 1 && levelNum <= 3) {
             // Load from practice levels
             levelData = this.practicelevels[levelNum];
-        } else if (levelNum >= 3 && levelNum <= this.maxLevel) {
+        } else if (levelNum >= 4 && levelNum <= this.maxLevel) {
             // Load from main game levels using shuffled order
-            const shuffledIndex = levelNum - 3; // Convert to 0-based index for shuffled array
+            const shuffledIndex = levelNum - 4; // Convert to 0-based index for shuffled array
             const originalLevelNum = this.shuffledMainLevels[shuffledIndex];
             levelData = this.levels[originalLevelNum];
         }
@@ -813,8 +786,8 @@ class SokobanGame {
         // Check if level is complete
         if (this.checkSolved()) {
             this.levelComplete = true;
-            // Only count main game levels (3-42) as successful levels, not practice levels (1-2)
-            if (this.currentLevel >= 3) {
+            // Only count main game levels (4-38) as successful levels, not practice levels (1-3)
+            if (this.currentLevel >= 4) {
                 this.successfulLevels++; // Increment successful levels count
             }
             console.log(`Level ${this.currentLevel} completed successfully! Total successful levels: ${this.successfulLevels}`);
@@ -865,7 +838,7 @@ class SokobanGame {
         if (this.gameComplete) {
             // Update successful levels display
             document.getElementById('success-levels').textContent = this.successfulLevels;
-            console.log(`Game completed! Displaying successful levels: ${this.successfulLevels}/40`);
+            console.log(`Game completed! Displaying successful levels: ${this.successfulLevels}/35`);
             
             // Set transition flag for game completion
             this.isTransitioning = true;
@@ -875,9 +848,9 @@ class SokobanGame {
                 this.isTransitioning = false;
             }, 5000);
         } else if (this.levelComplete) {
-            // Check if this is practice level 2 - show practice completion modal
-            if (this.currentLevel === 2) {
-                console.log('Practice level 2 completed - showing practice completion modal');
+            // Check if this is practice level 3 - show practice completion modal
+            if (this.currentLevel === 3) {
+                console.log('Practice level 3 completed - showing practice completion modal');
                 this.isTransitioning = true;
                 practiceCompleteDiv.style.display = 'flex';
                 // Don't auto-advance, wait for user to click continue button
@@ -918,8 +891,8 @@ class SokobanGame {
         this.recordSpecialAction("failure");
         
         // Check if this is practice level 2 - show practice completion modal
-        if (this.currentLevel === 2) {
-            console.log('Practice level 2 failed - showing practice completion modal');
+        if (this.currentLevel === 3) {
+            console.log('Practice level 3 failed - showing practice completion modal');
             practiceCompleteDiv.style.display = 'flex';
             // Don't auto-advance, wait for user to click continue button
         } else if (this.currentLevel >= this.maxLevel) {
@@ -936,7 +909,7 @@ class SokobanGame {
                 failureDiv.style.display = 'none';
                 // Update successful levels display
                 document.getElementById('success-levels').textContent = this.successfulLevels;
-                console.log(`Game completed via failure at level 40! Displaying successful levels: ${this.successfulLevels}/40`);
+                console.log(`Game completed via failure at level 38! Displaying successful levels: ${this.successfulLevels}/35`);
                 gameCompleteDiv.style.display = 'block';
             }, 500);
         } else {
@@ -972,9 +945,9 @@ class SokobanGame {
         // Reset transition flag
         this.isTransitioning = false;
         
-        // Load level 3 (main game starts)
-        console.log('Loading level 3 to start main game');
-        this.loadLevel(3);
+        // Load level 4 (main game starts)
+        console.log('Loading level 4 to start main game');
+        this.loadLevel(4);
         console.log('Level loaded, current level is now:', this.currentLevel);
     }
     
@@ -1043,13 +1016,13 @@ class SokobanGame {
     updateUI() {
         // Update level display based on current level
         let levelDisplay = '';
-        if (this.currentLevel <= 2) {
+        if (this.currentLevel <= 3) {
             // Practice levels
             levelDisplay = `Practice ${this.currentLevel}`;
         } else {
-            // Main game levels (3-42 map to 1-40, but display in sequential order)
-            const mainGameLevel = this.currentLevel - 2;
-            levelDisplay = `${mainGameLevel}/40`;
+            // Main game levels (4-38 map to 1-35, but display in sequential order)
+            const mainGameLevel = this.currentLevel - 3;
+            levelDisplay = `${mainGameLevel}/35`;
         }
         document.getElementById('current-level').textContent = levelDisplay;
         
